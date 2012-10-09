@@ -3,91 +3,159 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/topics/item-pipeline.html
 from scrapy import log
-from markets.models import Symbol,Exchange,SymbolData,MarketSummary
-from django.utils.timezone import utc,get_current_timezone,get_default_timezone,make_aware
+from markets.models import Symbol, Exchange, SymbolData, MarketSummary, \
+    ShareIssue
+from django.utils.timezone import get_current_timezone, make_aware
 from datetime import datetime
+
+
 class DjangoLoaderPipeline(object):
-    def to_float(self,instr):
+    def to_float(self, instr):
         try:
             return(float(instr))
-        except (ValueError,TypeError,AttributeError):
+        except (ValueError, TypeError, AttributeError):
             return None
 
     def process_item(self, item, spider):
-        exchange=Exchange.objects.get(code=item['exchange'])
-        dateix=item['dateix']
-        dd=make_aware(datetime(dateix.year,dateix.month,dateix.day),
-                                      get_current_timezone())
+        # import ipdb; ipdb.set_trace()
+        exchange = Exchange.objects.get(code=item['exchange'])
+        dateix = item['dateix']
+        dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
+                        get_current_timezone())
         if 'composite_ix' in item.fields:
-            log.msg("Process market summary",level=log.DEBUG)
-            defaults={}
-            default_mapper={
-                'composite_ix':'main_index',
-                'alltt_ix':'index1',
-                'cross_ix':'index2',
-                 'total_market_volume':'volume',
-                 'total_market_value':'value_traded'
-                }
-            for k,v in default_mapper.iteritems():
-               val = self.to_float(item[k])
-               if val:
-                   defaults[v]=val
-            import ipdb; ipdb.set_trace()
-            obj,created = MarketSummary.objects.get_or_create(dateix=dd,
-                            exchange=exchange,
-                            defaults=defaults)
+            log.msg("Process market summary", level=log.DEBUG)
+            defaults = {}
+            default_mapper = {
+                'composite_ix': 'main_index',
+                'alltt_ix': 'index1',
+                'cross_ix': 'index2',
+                'total_market_volume': 'volume',
+                'total_market_value': 'value_traded'
+            }
+            for k, v in default_mapper.iteritems():
+                val = self.to_float(item[k])
+                if val:
+                    defaults[v] = val
+            #import ipdb; ipdb.set_trace()
+            obj, created = MarketSummary.objects.get_or_create(
+                dateix=dd,
+                exchange=exchange,
+                defaults=defaults
+            )
             if created:
                 log.msg("Added new observation %s[%s]=[C:%s V:%s]" % (
-                        item['exchange'],dateix.strftime('%Y-%m-%d'),
+                        item['exchange'], dateix.strftime('%Y-%m-%d'),
                         defaults['volume'],
-                        defaults['main_index']),level=log.DEBUG)                
+                        defaults['main_index']), level=log.DEBUG)
             else:
-                for k,v in default_mapper.iteritems():
-                   val = self.to_float(item[k])
+                for k, v in default_mapper.iteritems():
+                    val = self.to_float(item[k])
                    #import pdb; pdb.set_trace()
-                   if val:
-                       setattr(obj,v,val)
+                    if val:
+                        setattr(obj, v, val)
+                obj.save()
+        elif 'capital_value' in item.fields:
+            # if  "AMCL" in item['ticker']:
+            #     import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
+            log.msg("Processing CapValueItem", level=log.DEBUG)
+            symbol = Symbol.objects.get(
+                exchange=exchange,
+                ticker=item['ticker']
+            )
+            #update Market cap Value Traded
+            defaults = {
+                'value_traded': self.to_float(item['traded_value']),
+                'market_cap': self.to_float(item['capital_value']),
+            }
+
+            obj, created = SymbolData.objects.get_or_create(
+                dateix=dd,
+                symbol=symbol,
+                defaults=defaults
+            )
+            if not created:
+                for k, v in defaults.iteritems():
+                    setattr(obj, k, self.to_float(v))
                 obj.save()
 
+            log.msg("Updated %s[%s]=Val[%s] K[%s]" % (
+                    item['ticker'],
+                    dd.strftime('%Y-%m-%d'),
+                    self.to_float(item['traded_value']),
+                    self.to_float(item['capital_value'])
+                )
+            )
+            issued_capital = self.to_float(item['issued_capital'])
+            if not issued_capital:
+                return item
+            # try:
+            #     sh = symbol.company.shareissue_set.get()
+            #     # sh.dateix = dateix
+            #     # sh.outstanding = issued_capital
+            #     # sh.save()
+            # except ShareIssue.DoesNotExist:
+            #     sh = ShareIssue(
+            #         company=symbol.company,
+            #         dateix=dateix,
+            #         outstanding=issued_capital
+            #     )
+            #     import ipdb; ipdb.set_trace()
+            #     sh.save()
+            # log.msg("Upadated share issue for %s[%s]=%s" %
+            #         (symbol, dateix, issued_capital)
+            # )
+            return item
         else:
-            log.msg("Procesing Ticker %s" % item['ticker'],level=log.DEBUG)
-            symbol=Symbol.objects.get(exchange=exchange,ticker=item['ticker'])
-            defaults={}
+            if not item.get('volume'):
+                return item
+            log.msg(
+                "Procesing Ticker %s" % item['ticker'],
+                level=log.DEBUG
+            )
+            symbol = Symbol.objects.get(
+                exchange=exchange,
+                ticker=item['ticker']
+            )
+            defaults = {}
             default_mapper = {
-                'open_price':'open_price',
-                'high_price':'high_price',
-                'low_price':'low_price',
-                'close_price':'close_price',
-                'volume':'volume'
-             }
+                'open_price': 'open_price',
+                'high_price': 'high_price',
+                'low_price': 'low_price',
+                'close_price': 'close_price',
+                'volume': 'volume'
+            }
 
-            for k,v in default_mapper.iteritems():
-               val = self.to_float(item[k])
-               if val:
-                   defaults[v]=val
-            defaults['exchange_code']='TTSE'
+            for k, v in default_mapper.iteritems():
+                val = self.to_float(item[k])
+                if val:
+                    defaults[v] = val
+            defaults['exchange_code'] = 'TTSE'
 
-            obj,created = SymbolData.objects.get_or_create(dateix=dd,
-                          symbol=symbol,
-                          defaults=defaults)
+            obj, created = SymbolData.objects.get_or_create(
+                dateix=dd,
+                symbol=symbol,
+                defaults=defaults
+            )
             if created:
-                log.msg("Added new observation %s[%s]=[C:%s V:%s]" % (symbol.ticker,
-                                                dd.strftime('%Y-%m-%d'),
-                                                defaults['close_price'],
-                                                defaults['volume'])
-                       )
-
-
+                log.msg(
+                    "Added new observation %s[%s]=[C:%s V:%s]" % (
+                        symbol.ticker,
+                        dd.strftime('%Y-%m-%d'),
+                        defaults['close_price'],
+                        defaults['volume'])
+                )
             else:
-                log.msg("Edited observation %s[%s]" % (symbol.ticker,
-                                                dd.strftime('%Y-%m-%d'))
-                        )
+                log.msg("Edited observation %s[%s]" % (
+                    symbol.ticker,
+                    dd.strftime('%Y-%m-%d'))
+                )
 
-                for k,v in default_mapper.iteritems():
-                   val = self.to_float(item[k])
-                   #import pdb; pdb.set_trace()
-                   if val:
-                       setattr(obj,v,val)
+                for k, v in default_mapper.iteritems():
+                    val = self.to_float(item[k])
+                    #import pdb; pdb.set_trace()
+                    if val:
+                        setattr(obj, v, val)
                 obj.save()
 
         return item
