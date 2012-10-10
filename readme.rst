@@ -33,6 +33,36 @@ We aim to provide the following data for each markets
 Change Log
 ===========
 
+0.0.2 (2012-10-09)
+==================
+
+* Changed the names of the scrapers::
+
+    scrapy crawl ttse_equity -a start_date=2012-01-05
+    scrapy crawl ttse_equity -a start_date=2012-01-05 -a end_date=2012-03-01
+
+  For the Bond listing::
+
+     scrapy crawl ttse_bond_listing
+
+
+
+* Added a TTSE Debt Security listing scraper that provides the identification
+  data on the bonds traded on the market. The data fields provided include:
+
+    - isin
+    - bond_type
+    - issue_date
+    - maturity_date
+    - face_value
+    - currency
+
+* The the dateix field in all Item Models now a string as
+  opposed to a datetime instance as this affects our ability
+  serialize to json
+* Re-factored the Django pipeline to more efficiently deal with multiple
+  issue types
+
 0.0.1 (2012-10-08)
 ==================
 
@@ -76,15 +106,12 @@ Change Log
         - trade_count
         - traded_value
 
-* The spider supports parsing a single days data
-  as well as parsing a date range
-  Date Range functionality currently requires pandas but we plan to replace
+* Date range crawling currently requires pandas but we plan to replace
   with ``dateutils.rrules``.
 
 * We've done a pipeline to support Django model loading. We'd like to
   find an elegant way of decoupling scrapy from our custom
   django stuff since your model is likely to be different from mine.
-
 
 
 

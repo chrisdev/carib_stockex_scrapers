@@ -6,12 +6,6 @@
 from scrapy.item import Item, Field
 
 
-class CaribStockexScrapersItem(Item):
-    # define the fields for your item here like:
-    # name = Field()
-    pass
-
-
 class MarketSummaryItem(Item):
     exchange = Field()
     dateix = Field()
@@ -40,7 +34,7 @@ class TickerItem(Item):
     volume = Field()
 
 
-class CapValue(Item):
+class CapValueItem(Item):
     exchange = Field()
     dateix = Field()
     ticker = Field()
@@ -48,3 +42,25 @@ class CapValue(Item):
     capital_value = Field()
     trade_count = Field()
     traded_value = Field()
+
+class BondListingItems(Item):
+    exchange = Field()
+    dateix = Field()
+    symbol = Field()
+    isin = Field()
+    bond_type = Field()
+    security_name = Field()
+    short_name = Field()
+    issuer = Field()
+    description = Field()
+    address = Field()
+    url = Field()
+    issue_date = Field()
+    maturity_date = Field()
+    coupon_rate = Field()
+    face_value = Field()
+    par_value = Field()
+    rate_type = Field()
+    currency = Field()
+    country = Field()
+    status = Field()

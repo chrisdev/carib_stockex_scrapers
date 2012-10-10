@@ -3,8 +3,12 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/topics/item-pipeline.html
 from scrapy import log
-from markets.models import Symbol, Exchange, SymbolData, MarketSummary, \
+from markets.models import Symbol, Exchange, SymbolData, MarketSummary,\
     ShareIssue
+from trading.models import Security, InstrumentType
+from carib_stockex_scrapers.items import BondListingItems, MarketSummaryItem, \
+    TickerItem, CapValueItem
+from dateutil.parser import parse
 from django.utils.timezone import get_current_timezone, make_aware
 from datetime import datetime
 
@@ -17,12 +21,36 @@ class DjangoLoaderPipeline(object):
             return None
 
     def process_item(self, item, spider):
-        # import ipdb; ipdb.set_trace()
-        exchange = Exchange.objects.get(code=item['exchange'])
-        dateix = item['dateix']
-        dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
+        if isinstance(item, BondListingItems):
+            log.msg("Processing Bond Listing %s" % item, level=log.DEBUG)
+            itype = InstrumentType.objects.get(
+                description="Debt Instrument")
+            defaults = {
+                "symbol": item["symbol"],
+                "security_type": itype,
+                "security_name": item["security_name"],
+                "short_name": item["short_name"],
+                "description": item["description"]
+            }
+            obj, created = Security.objects.get_or_create(
+                isin=item['isin'],
+                defaults=defaults
+                )
+            op_str = "Added new Bond"
+            if not created:
+                op_str = "Updated Bond"
+                for k, v in defaults.iteritems():
+                    setattr(obj, k, v)
+                obj.save()
+            #import ipdb; ipdb.set_trace()
+            log.msg("%s %s" % (op_str,
+                item['isin']), level=log.DEBUG)
+            return item
+        if isinstance(item, MarketSummaryItem):
+            exchange = Exchange.objects.get(code=item['exchange'])
+            dateix = parse(item['dateix'])
+            dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
                         get_current_timezone())
-        if 'composite_ix' in item.fields:
             log.msg("Process market summary", level=log.DEBUG)
             defaults = {}
             default_mapper = {
@@ -54,10 +82,11 @@ class DjangoLoaderPipeline(object):
                     if val:
                         setattr(obj, v, val)
                 obj.save()
-        elif 'capital_value' in item.fields:
-            # if  "AMCL" in item['ticker']:
-            #     import ipdb; ipdb.set_trace()
-            # import ipdb; ipdb.set_trace()
+        if isinstance(item, CapValueItem):
+            exchange = Exchange.objects.get(code=item['exchange'])
+            dateix = parse(item['dateix'])
+            dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
+                        get_current_timezone())
             log.msg("Processing CapValueItem", level=log.DEBUG)
             symbol = Symbol.objects.get(
                 exchange=exchange,
@@ -106,7 +135,13 @@ class DjangoLoaderPipeline(object):
             #         (symbol, dateix, issued_capital)
             # )
             return item
-        else:
+        if isinstance(item, TickerItem):
+
+            exchange = Exchange.objects.get(code=item['exchange'])
+            dateix = parse(item['dateix'])
+            dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
+                        get_current_timezone())
+
             if not item.get('volume'):
                 return item
             log.msg(
@@ -158,4 +193,4 @@ class DjangoLoaderPipeline(object):
                         setattr(obj, v, val)
                 obj.save()
 
-        return item
+            return item

@@ -4,7 +4,7 @@ from scrapy.selector import HtmlXPathSelector
 from dateutil.parser import parse
 from datetime import date
 from carib_stockex_scrapers.items import MarketSummaryItem,\
-    TickerItem, CapValue
+    TickerItem, CapValueItem
 from pandas import bdate_range
 
 
@@ -15,7 +15,7 @@ def clean_str(instr):
 
 
 class TTSESpider(BaseSpider):
-    name = 'ttse'
+    name = 'ttse_equity'
     allowed_domains = ["http://www.stockex.co.tt"]
 
     def __init__(self, start_date=None, end_date=None):
@@ -37,16 +37,16 @@ class TTSESpider(BaseSpider):
             for dd in bdate_range(start=self.start, end=self.end):
                 url = "%s/%s=view_quote&TradingDate=%s" % (
                     domain, controller, dd.strftime("%m/%d/%y"))
-                yield Request(url, self.parse)
+                yield Request(url, self.parse_equity_summary)
 
                 url = "%s/%s=view_daily_index_summary&TradingDate=%s" % (
                     domain, controller, dd.strftime("%m/%d/%y"))
-                yield Request(url, self.parse_index_summ)
+                yield Request(url, self.parse_index_summary)
         else:
-            # url = "%s/%s=view_quote&TradingDate=%s" % (
-            #     domain, controller, self.start.strftime("%m/%d/%y")
-            # )
-            # yield Request(url, self.parse_equity_summary)
+            url = "%s/%s=view_quote&TradingDate=%s" % (
+                domain, controller, self.start.strftime("%m/%d/%y")
+            )
+            yield Request(url, self.parse_equity_summary)
             url = "%s/%s=view_daily_index_summary&TradingDate=%s" % (
                 domain, controller, self.start.strftime("%m/%d/%y")
             )
@@ -81,8 +81,8 @@ class TTSESpider(BaseSpider):
                 'p/text()').extract()[0])
             traded_value = clean_str(data_rows[r].select('td')[4].select(
                 'p/text()').extract()[0])
-            yield CapValue(exchange='TTSE',
-                           dateix=dateix,
+            yield CapValueItem(exchange='TTSE',
+                           dateix=dateix.strftime("%y-%m-%d"),
                            ticker=ticker,
                            issued_capital=issued_capital,
                            capital_value=captial_value,
@@ -131,7 +131,7 @@ class TTSESpider(BaseSpider):
 
         yield MarketSummaryItem(
             exchange='TTSE',
-            dateix=dateix,
+            dateix=dateix.strftime("%y-%m-%d"),
             composite_ix=composite_ix,
             total_market_volume=total_volume,
             total_market_value=total_value,
@@ -174,7 +174,7 @@ class TTSESpider(BaseSpider):
                 open_price, high_price,
                 low_price, close_price, volume)
             )
-            yield TickerItem(dateix=dateix,
+            yield TickerItem(dateix=dateix.strftime("%y-%m-%d"),
                              exchange='TTSE',
                              ticker=ticker,
                              open_price=open_price,
