@@ -66,17 +66,17 @@ Change Log
 0.0.1 (2012-10-08)
 ==================
 
-* We added a TTSE daily equity scraper which more or less works.
-  Crawl a single date ::
+* Added a TTSE daily equity scraper that more or less works. Supports
+  crawling over a single date ::
 
     scrapy crawl ttse -a start_date=2012-01-05
 
-   Crawl over a date range ::
+  Crawl over a date range ::
 
     scrapy crawl ttse -a start_date=2012-01-05 -a end_date=2012-03-01
 
 
-    These provide the following data
+  The spider provides the following data
 
     * Equity Market Summary
 
