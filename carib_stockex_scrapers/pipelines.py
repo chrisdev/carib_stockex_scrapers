@@ -35,7 +35,7 @@ class DjangoLoaderPipeline(object):
             obj, created = Security.objects.get_or_create(
                 isin=item['isin'],
                 defaults=defaults
-                )
+            )
             op_str = "Added new Bond"
             if not created:
                 op_str = "Updated Bond"
@@ -44,13 +44,15 @@ class DjangoLoaderPipeline(object):
                 obj.save()
             #import ipdb; ipdb.set_trace()
             log.msg("%s %s" % (op_str,
-                item['isin']), level=log.DEBUG)
+                    item['isin']), level=log.DEBUG
+                    )
             return item
         if isinstance(item, MarketSummaryItem):
             exchange = Exchange.objects.get(code=item['exchange'])
             dateix = parse(item['dateix'])
             dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
-                        get_current_timezone())
+                            get_current_timezone()
+                            )
             log.msg("Process market summary", level=log.DEBUG)
             defaults = {}
             default_mapper = {
@@ -86,7 +88,7 @@ class DjangoLoaderPipeline(object):
             exchange = Exchange.objects.get(code=item['exchange'])
             dateix = parse(item['dateix'])
             dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
-                        get_current_timezone())
+                            get_current_timezone())
             log.msg("Processing CapValueItem", level=log.DEBUG)
             symbol = Symbol.objects.get(
                 exchange=exchange,
@@ -113,8 +115,8 @@ class DjangoLoaderPipeline(object):
                     dd.strftime('%Y-%m-%d'),
                     self.to_float(item['traded_value']),
                     self.to_float(item['capital_value'])
-                )
-            )
+                    )
+                    )
             issued_capital = self.to_float(item['issued_capital'])
             if not issued_capital:
                 return item
@@ -139,10 +141,17 @@ class DjangoLoaderPipeline(object):
 
             exchange = Exchange.objects.get(code=item['exchange'])
             dateix = parse(item['dateix'])
-            dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
-                        get_current_timezone())
+            dd = make_aware(
+                datetime(
+                    dateix.year,
+                    dateix.month,
+                    dateix.day),
+                get_current_timezone()
+            )
 
             if not item.get('volume'):
+                return item
+            if not self.to_float(item['volume']):
                 return item
             log.msg(
                 "Procesing Ticker %s" % item['ticker'],
@@ -165,7 +174,7 @@ class DjangoLoaderPipeline(object):
                 val = self.to_float(item[k])
                 if val:
                     defaults[v] = val
-            defaults['exchange_code'] = 'TTSE'
+            defaults['exchange_code'] = item['exchange']
 
             obj, created = SymbolData.objects.get_or_create(
                 dateix=dd,
@@ -174,17 +183,9 @@ class DjangoLoaderPipeline(object):
             )
             if created:
                 log.msg(
-                    "Added new observation %s[%s]=[C:%s V:%s]" % (
-                        symbol.ticker,
-                        dd.strftime('%Y-%m-%d'),
-                        defaults['close_price'],
-                        defaults['volume'])
+                    "Added new observation %s" % obj
                 )
             else:
-                log.msg("Edited observation %s[%s]" % (
-                    symbol.ticker,
-                    dd.strftime('%Y-%m-%d'))
-                )
 
                 for k, v in default_mapper.iteritems():
                     val = self.to_float(item[k])
@@ -192,5 +193,6 @@ class DjangoLoaderPipeline(object):
                     if val:
                         setattr(obj, v, val)
                 obj.save()
-
+                log.msg("Edited observation %s" % obj
+                )
             return item

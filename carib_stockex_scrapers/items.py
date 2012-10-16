@@ -23,6 +23,25 @@ class MarketSummaryItem(Item):
     cross_trades = Field()
 
 
+class JSEIndexItem(Item):
+    exchange = Field()
+    dateix = Field()
+    jse_market_index = Field()
+    jse_market_index_volume = Field()
+    jse_select_index = Field()
+    jse_select_index_volume = Field()
+    jse_composite_index = Field()
+    jse_cross_index = Field()
+    jse_cross_index_volume = Field()
+    jse_composite_index_volume = Field()
+    jse_junior_index = Field()
+    jse_junior_index_volume = Field()
+    jse_combined_index = Field()
+    jse_combined_index_volume = Field()
+    jse_us_equities_index = Field()
+    jse_us_equities_index_volume = Field()
+
+
 class TickerItem(Item):
     exchange = Field()
     dateix = Field()
@@ -42,6 +61,7 @@ class CapValueItem(Item):
     capital_value = Field()
     trade_count = Field()
     traded_value = Field()
+
 
 class BondListingItems(Item):
     exchange = Field()

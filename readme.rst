@@ -2,7 +2,7 @@
 Scrapers for Caribbean Stock Markets
 =====================================
 
-This is intended to be a collection of scrapers for Caribbean Stock markets.
+A collection of scrapers for extracting data from Caribbean Stock markets.
 While many of the stock exchange websites provide a convenient CSV dump
 URL unfortunately these
 only provide the most basic data i.e closing prices and volumes.
@@ -32,6 +32,14 @@ We aim to provide the following data for each markets
 ===========
 Change Log
 ===========
+
+0.0.3
+======
+
+* Added a JSE equity scraper
+
+* Fixed the TTSE equity and bond scrapers and ensure that all symbols
+  were scraped
 
 0.0.2 (2012-10-09)
 ==================

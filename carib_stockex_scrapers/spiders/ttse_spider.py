@@ -5,13 +5,23 @@ from dateutil.parser import parse
 from datetime import date
 from carib_stockex_scrapers.items import MarketSummaryItem,\
     TickerItem, CapValueItem
-from pandas import bdate_range
+from dateutil import rrule
+from dateutil.rrule import MO, TU, WE, TH, FR
 
 
 def clean_str(instr):
     s = instr.strip()
     s = s.replace(u'\xa0', u'')
     return s.replace(",", "").replace('$', "")
+
+
+def bdate_range(start, end):
+    return rrule.rrule(
+        rrule.DAILY,
+        byweekday=(MO, TU, WE, TH, FR),
+        dtstart=start,
+        until=end
+    )
 
 
 class TTSESpider(BaseSpider):
@@ -36,19 +46,19 @@ class TTSESpider(BaseSpider):
         if self.end:
             for dd in bdate_range(start=self.start, end=self.end):
                 url = "%s/%s=view_quote&TradingDate=%s" % (
-                    domain, controller, dd.strftime("%m/%d/%y"))
+                    domain, controller, dd.strftime("%m/%d/%Y"))
                 yield Request(url, self.parse_equity_summary)
 
                 url = "%s/%s=view_daily_index_summary&TradingDate=%s" % (
-                    domain, controller, dd.strftime("%m/%d/%y"))
+                    domain, controller, dd.strftime("%m/%d/%Y"))
                 yield Request(url, self.parse_index_summary)
         else:
             url = "%s/%s=view_quote&TradingDate=%s" % (
-                domain, controller, self.start.strftime("%m/%d/%y")
+                domain, controller, self.start.strftime("%m/%d/%Y")
             )
             yield Request(url, self.parse_equity_summary)
             url = "%s/%s=view_daily_index_summary&TradingDate=%s" % (
-                domain, controller, self.start.strftime("%m/%d/%y")
+                domain, controller, self.start.strftime("%m/%d/%Y")
             )
             yield Request(url, self.parse_index_summary)
 
@@ -61,7 +71,7 @@ class TTSESpider(BaseSpider):
             'tr/td/p/text()').extract()[0].split(',')[1:]))
 
         self.log("Spider Index Summary for %s" % dateix.strftime(
-            "%y-%m-%d")
+            "%Y-%m-%d")
         )
         data_rows = hxs.select('//table')[2].select('tr')
         for r in range(1, len(data_rows)):
@@ -81,13 +91,14 @@ class TTSESpider(BaseSpider):
                 'p/text()').extract()[0])
             traded_value = clean_str(data_rows[r].select('td')[4].select(
                 'p/text()').extract()[0])
-            yield CapValueItem(exchange='TTSE',
-                           dateix=dateix.strftime("%y-%m-%d"),
-                           ticker=ticker,
-                           issued_capital=issued_capital,
-                           capital_value=captial_value,
-                           trade_count=trade_count,
-                           traded_value=traded_value)
+            yield CapValueItem(
+                exchange='TTSE',
+                dateix=dateix.strftime("%y-%m-%d"),
+                ticker=ticker,
+                issued_capital=issued_capital,
+                capital_value=captial_value,
+                trade_count=trade_count,
+                traded_value=traded_value)
 
     def parse_equity_summary(self, response):
         hxs = HtmlXPathSelector(response)
@@ -99,7 +110,7 @@ class TTSESpider(BaseSpider):
             date_tab.select(
             'tr/td/p/text()').extract()[0].split(',')[1:]))
         self.log("Spider Equity Summary for %s" % dateix.strftime(
-            "%y-%m-%d")
+            "%Y-%m-%d")
         )
         sum_tab = hxs.select('//table')[3]
         composite_ix = clean_str(
@@ -151,34 +162,35 @@ class TTSESpider(BaseSpider):
                 dateix, composite_ix, total_volume,
                 total_value, num_trades)
         )
+        log_str = "%s ticker:%s open:%s high %s low %s close %s volume: %s"
+        for t in [4, 5, 6]:
+            ord_rows = hxs.select('//table')[t].select('tr')
+            for r in range(2, len(ord_rows)):
+                ticker = ord_rows[r].select('td')[1].select(
+                    'p/a').select(
+                        'text()').extract()[0].strip()
+                open_price = clean_str(ord_rows[r].select(
+                    'td')[2].select(
+                        'p/text()').extract()[0])
+                high_price = clean_str(ord_rows[r].select('td')[3].select(
+                    'p/text()').extract()[0])
+                low_price = clean_str(ord_rows[r].select('td')[4].select(
+                    'p/text()').extract()[0])
+                volume = clean_str(ord_rows[r].select('td')[11].select(
+                    'p/text()').extract()[0])
+                close_price = clean_str(ord_rows[r].select('td')[12].select(
+                    'p/text()').extract()[0])
 
-        ord_rows = hxs.select('//table')[4].select('tr')
-        for r in range(2, len(ord_rows)):
-            ticker = ord_rows[r].select('td')[1].select('p/a').select(
-                'text()').extract()[0].strip()
-            # details_url = clean_str(ord_rows[r].select('td')[1].select(
-            #     'p/a').select('@href').extract()[0])
-            open_price = clean_str(ord_rows[r].select('td')[2].select(
-                'p/text()').extract()[0])
-            high_price = clean_str(ord_rows[r].select('td')[3].select(
-                'p/text()').extract()[0])
-            low_price = clean_str(ord_rows[r].select('td')[4].select(
-                'p/text()').extract()[0])
-            volume = clean_str(ord_rows[r].select('td')[11].select(
-                'p/text()').extract()[0])
-            close_price = clean_str(ord_rows[r].select('td')[12].select(
-                'p/text()').extract()[0])
-            log_str = "%s ticker:%s open:%s high %s low %s close %s volume: %s"
-            self.log(log_str % (
-                dateix.strftime("%m/%d/%y"), ticker,
-                open_price, high_price,
-                low_price, close_price, volume)
-            )
-            yield TickerItem(dateix=dateix.strftime("%y-%m-%d"),
-                             exchange='TTSE',
-                             ticker=ticker,
-                             open_price=open_price,
-                             high_price=high_price,
-                             low_price=low_price,
-                             close_price=close_price,
-                             volume=volume)
+                self.log(log_str % (
+                    dateix.strftime("%m/%d/%y"), ticker,
+                    open_price, high_price,
+                    low_price, close_price, volume)
+                )
+                yield TickerItem(dateix=dateix.strftime("%Y-%m-%d"),
+                                 exchange='TTSE',
+                                 ticker=ticker,
+                                 open_price=open_price,
+                                 high_price=high_price,
+                                 low_price=low_price,
+                                 close_price=close_price,
+                                 volume=volume)
