@@ -53,6 +53,7 @@ class DjangoLoaderPipeline(object):
             dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
                             get_current_timezone()
                             )
+            # import ipdb; ipdb.set_trace()
             log.msg("Process market summary", level=log.DEBUG)
             defaults = {}
             default_mapper = {
@@ -84,61 +85,58 @@ class DjangoLoaderPipeline(object):
                     if val:
                         setattr(obj, v, val)
                 obj.save()
+            return item
         if isinstance(item, CapValueItem):
             exchange = Exchange.objects.get(code=item['exchange'])
             dateix = parse(item['dateix'])
-            dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
-                            get_current_timezone())
+            dd = make_aware(
+                datetime(dateix.year, dateix.month, dateix.day),
+                get_current_timezone())
             log.msg("Processing CapValueItem", level=log.DEBUG)
-            symbol = Symbol.objects.get(
-                exchange=exchange,
-                ticker=item['ticker']
-            )
-            #update Market cap Value Traded
-            defaults = {
-                'value_traded': self.to_float(item['traded_value']),
-                'market_cap': self.to_float(item['capital_value']),
-            }
+            try:
+                symbol = Symbol.objects.get(
+                    exchange=exchange,
+                    ticker=item['ticker']
+                )
+            except Symbol.DoesNotExist:
+                log.msg(
+                    "Symbol {} {} does not exist".format(
+                        item['exchange'], item['ticker'])
+                )
+                return item
 
-            obj, created = SymbolData.objects.get_or_create(
-                dateix=dd,
-                symbol=symbol,
-                defaults=defaults
-            )
-            if not created:
-                for k, v in defaults.iteritems():
-                    setattr(obj, k, self.to_float(v))
+            # only update Market cap/value traded if there a trade for that day
+            try:
+                obj = SymbolData.objects.get(dateix=dd, symbol=symbol)
+                obj.value_traded = self.to_float(item['traded_value'])
+                obj.market_cap = self.to_float(item['capital_value'])
                 obj.save()
 
-            log.msg("Updated %s[%s]=Val[%s] K[%s]" % (
-                    item['ticker'],
-                    dd.strftime('%Y-%m-%d'),
-                    self.to_float(item['traded_value']),
-                    self.to_float(item['capital_value'])
-                    )
-                    )
-            issued_capital = self.to_float(item['issued_capital'])
-            if not issued_capital:
-                return item
-            # try:
-            #     sh = symbol.company.shareissue_set.get()
-            #     # sh.dateix = dateix
-            #     # sh.outstanding = issued_capital
-            #     # sh.save()
-            # except ShareIssue.DoesNotExist:
-            #     sh = ShareIssue(
-            #         company=symbol.company,
-            #         dateix=dateix,
-            #         outstanding=issued_capital
-            #     )
-            #     import ipdb; ipdb.set_trace()
-            #     sh.save()
-            # log.msg("Upadated share issue for %s[%s]=%s" %
-            #         (symbol, dateix, issued_capital)
-            # )
+                log.msg("Updated {}".format(obj))
+
+            except SymbolData.DoesNotExist:
+                pass
+            c = symbol.company
+            print c
+
+            try:
+                obj, created = ShareIssue.objects.get_or_create(
+                    dateix=dd,
+                    company=c,
+                    defaults={
+                        'outstanding': self.to_float(item['issued_capital'])
+                    }
+                )
+            except Exception, e:
+                print e
+                import ipdb; ipdb.set_trace()
+
+            # if not created:
+            #     obj.outstanding = self.to_float(item['issued_capital'])
+            #     obj.save()
+
             return item
         if isinstance(item, TickerItem):
-
             exchange = Exchange.objects.get(code=item['exchange'])
             dateix = parse(item['dateix'])
             dd = make_aware(
@@ -193,6 +191,5 @@ class DjangoLoaderPipeline(object):
                     if val:
                         setattr(obj, v, val)
                 obj.save()
-                log.msg("Edited observation %s" % obj
-                )
+                log.msg("Edited observation {}".format(obj))
             return item

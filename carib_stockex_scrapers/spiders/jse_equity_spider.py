@@ -1,15 +1,10 @@
-# /html/body/table/tbody/tr/td/div/div[5]/div/div/table
-# /html/body/table/tbody/tr/td/div/div[5]/div/div/table[2]
-# /html/body/table/tbody/tr/td/div/div[5]/div/div/table[3]
-
-
 from scrapy.spider import BaseSpider
 from scrapy.http import Request
 from scrapy.selector import HtmlXPathSelector
 from dateutil.parser import parse
 from datetime import date
 from carib_stockex_scrapers.items import JSEIndexItem,\
-    TickerItem, CapValueItem
+    TickerItem
 from dateutil import rrule
 from dateutil.rrule import MO, TU, WE, TH, FR
 
@@ -97,18 +92,26 @@ class JSESpider(BaseSpider):
 
         jse_junior_index_volume = clean_str(
             sum_tab.select('tr')[5].select('td/p/text()')[2].extract())
-
-        jse_combined_index = clean_str(
+        try:
+            jse_combined_index = clean_str(
             sum_tab.select('tr')[6].select('td/p/text()')[1].extract())
-
-        jse_combined_index_volume = clean_str(
+        except IndexError:
+            jse_combined_index =''
+        try:
+            jse_combined_index_volume = clean_str(
             sum_tab.select('tr')[6].select('td/p/text()')[2].extract())
-
-        jse_us_equities_index = clean_str(
+        except IndexError:
+            jse_combined_index_volume = ''
+        try:
+            jse_us_equities_index = clean_str(
             sum_tab.select('tr')[7].select('td/p/text()')[1].extract())
-
-        jse_us_equities_index_volume = clean_str(
+        except IndexError:
+            jse_us_equities_index = ''
+        try:
+            jse_us_equities_index_volume = clean_str(
             sum_tab.select('tr')[7].select('td/p/text()')[2].extract())
+        except IndexError:
+            jse_us_equities_index_volume=''
 
         ji = JSEIndexItem(
             exchange='JSE',

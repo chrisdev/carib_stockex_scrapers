@@ -93,7 +93,7 @@ class TTSESpider(BaseSpider):
                 'p/text()').extract()[0])
             yield CapValueItem(
                 exchange='TTSE',
-                dateix=dateix.strftime("%y-%m-%d"),
+                dateix=dateix.strftime("%Y-%m-%d"),
                 ticker=ticker,
                 issued_capital=issued_capital,
                 capital_value=captial_value,
@@ -139,10 +139,9 @@ class TTSESpider(BaseSpider):
             sum_tab.select('tr')[3].select('td/p/text()')[5].extract())
         cross_trades = clean_str(
             sum_tab.select('tr')[3].select('td/p/text()')[6].extract())
-
         yield MarketSummaryItem(
             exchange='TTSE',
-            dateix=dateix.strftime("%y-%m-%d"),
+            dateix=dateix.strftime("%Y-%m-%d"),
             composite_ix=composite_ix,
             total_market_volume=total_volume,
             total_market_value=total_value,
