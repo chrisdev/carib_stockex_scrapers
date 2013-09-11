@@ -25,7 +25,7 @@ def bdate_range(start, end):
 
 
 class TTSESpider(BaseSpider):
-    name = 'ttse_equity'
+    name = 'ttse_equity_data'
     allowed_domains = ["http://www.stockex.co.tt"]
 
     def __init__(self, start_date=None, end_date=None):
@@ -89,16 +89,17 @@ class TTSESpider(BaseSpider):
                 'p/text()').extract()[0])
             trade_count = clean_str(data_rows[r].select('td')[3].select(
                 'p/text()').extract()[0])
-            traded_value = clean_str(data_rows[r].select('td')[4].select(
+            traded_value = clean_str(data_rows[r].select('td')[5].select(
                 'p/text()').extract()[0])
-            yield CapValueItem(
-                exchange='TTSE',
-                dateix=dateix.strftime("%Y-%m-%d"),
-                ticker=ticker,
-                issued_capital=issued_capital,
-                capital_value=captial_value,
-                trade_count=trade_count,
-                traded_value=traded_value)
+            if traded_value:
+                yield CapValueItem(
+                    exchange='TTSE',
+                    dateix=dateix.strftime("%Y-%m-%d"),
+                    ticker=ticker,
+                    issued_capital=issued_capital,
+                    capital_value=captial_value,
+                    trade_count=trade_count,
+                    traded_value=traded_value)
 
     def parse_equity_summary(self, response):
         hxs = HtmlXPathSelector(response)

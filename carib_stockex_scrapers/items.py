@@ -63,7 +63,7 @@ class CapValueItem(Item):
     traded_value = Field()
 
 
-class BondListingItems(Item):
+class BondListingItem(Item):
     exchange = Field()
     dateix = Field()
     symbol = Field()
@@ -83,4 +83,11 @@ class BondListingItems(Item):
     rate_type = Field()
     currency = Field()
     country = Field()
+    status = Field()
+
+
+class EquityItem(Item):
+    company_name = Field()
+    symbol = Field()
+    financial_year_end = Field()
     status = Field()

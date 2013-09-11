@@ -7,23 +7,8 @@
 #
 
 
-def setup_django_env(path):
-    import imp
-    import sys
-    from os.path import join
-    from django.core.management import setup_environ
-
-    f, filename, desc = imp.find_module('settings', [path])
-    project = imp.load_module('settings', f, filename, desc)
-
-    setup_environ(project)
-
-    sys.path.insert(0, PATH_TO_DJANGO_PROJECT)
-    sys.path.insert(0, join(PATH_TO_DJANGO_PROJECT, "apps"))
-
-
-BOT_NAME = 'carib_stockex_scrapers'
-BOT_VERSION = '1.0'
+#BOT_NAME = 'carib_stockex_scrapers'
+#BOT_VERSION = '1.0'
 TELNETCONSOLE_ENABLED = False
 
 ITEM_PIPELINES = [
@@ -31,8 +16,4 @@ ITEM_PIPELINES = [
 ]
 SPIDER_MODULES = ['carib_stockex_scrapers.spiders']
 NEWSPIDER_MODULE = 'carib_stockex_scrapers.spiders'
-USER_AGENT = '%s/%s' % (BOT_NAME, BOT_VERSION)
-
-PATH_TO_DJANGO_PROJECT = '/Users/cclarke/Development/mass_site'
-
-setup_django_env(PATH_TO_DJANGO_PROJECT)
+#USER_AGENT = '%s/%s' % (BOT_NAME, BOT_VERSION)
