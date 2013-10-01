@@ -150,7 +150,7 @@ class JSESpider(BaseSpider):
                 'p/text()').extract()[0])
 
             ti = TickerItem(
-                dateix=dateix.strftime("%y-%m-%d"),
+                dateix=dateix.strftime("%Y-%m-%d"),
                 exchange='JSE',
                 ticker=ticker,
                 open_price=open_price,
@@ -176,7 +176,7 @@ class JSESpider(BaseSpider):
                 'p/text()').extract()[0])
 
             ti = TickerItem(
-                dateix=dateix.strftime("%y-%m-%d"),
+                dateix=dateix.strftime("%Y-%m-%d"),
                 exchange='JSE',
                 ticker=ticker,
                 open_price=open_price,

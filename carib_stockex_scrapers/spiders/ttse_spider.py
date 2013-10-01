@@ -3,8 +3,8 @@ from scrapy.http import Request
 from scrapy.selector import HtmlXPathSelector
 from dateutil.parser import parse
 from datetime import date
-from carib_stockex_scrapers.items import MarketSummaryItem,\
-    TickerItem, CapValueItem
+from carib_stockex_scrapers.items import (
+    MarketSummaryItem, TickerItem, CapValueItem, MarketCapValueItem)
 from dateutil import rrule
 from dateutil.rrule import MO, TU, WE, TH, FR
 
@@ -80,26 +80,46 @@ class TTSESpider(BaseSpider):
                     'p/a').select(
                         'text()'
                     ).extract()[0].strip()
-
+                issued_capital = clean_str(data_rows[r].select('td')[1].select(
+                    'p/text()').extract()[0])
+                captial_value = clean_str(data_rows[r].select('td')[2].select(
+                    'p/text()').extract()[0])
+                trade_count = clean_str(data_rows[r].select('td')[3].select(
+                    'p/text()').extract()[0])
+                traded_value = clean_str(data_rows[r].select('td')[5].select(
+                    'p/text()').extract()[0])
+                if traded_value:
+                    yield CapValueItem(
+                        exchange='TTSE',
+                        dateix=dateix.strftime("%Y-%m-%d"),
+                        ticker=ticker,
+                        issued_capital=issued_capital,
+                        capital_value=captial_value,
+                        trade_count=trade_count,
+                        traded_value=traded_value)
             except IndexError:
-                continue
-            issued_capital = clean_str(data_rows[r].select('td')[1].select(
-                'p/text()').extract()[0])
-            captial_value = clean_str(data_rows[r].select('td')[2].select(
-                'p/text()').extract()[0])
-            trade_count = clean_str(data_rows[r].select('td')[3].select(
-                'p/text()').extract()[0])
-            traded_value = clean_str(data_rows[r].select('td')[5].select(
-                'p/text()').extract()[0])
-            if traded_value:
-                yield CapValueItem(
-                    exchange='TTSE',
-                    dateix=dateix.strftime("%Y-%m-%d"),
-                    ticker=ticker,
-                    issued_capital=issued_capital,
-                    capital_value=captial_value,
-                    trade_count=trade_count,
-                    traded_value=traded_value)
+                tick_data = data_rows[r].select(
+                    'td')[0].select('p/b/text()').extract()
+
+                if 'Composite Totals' in tick_data:
+                    ticker = 'market_overview'
+                    capital_value = clean_str(
+                        data_rows[r].select('td')[1].select(
+                            'p/text()').extract()[0])
+                    trade_count = clean_str(
+                        data_rows[r].select('td')[2].select(
+                            'p/text()').extract()[0])
+                    traded_value = clean_str(
+                        data_rows[r].select('td')[4].select(
+                            'p/text()').extract()[0])
+                    yield MarketCapValueItem(
+                        exchange='TTSE',
+                        dateix=dateix.strftime('%Y-%m-%d'),
+                        capital_value=capital_value,
+                        trade_count=trade_count,
+                        traded_value=traded_value)
+                else:
+                    continue
 
     def parse_equity_summary(self, response):
         hxs = HtmlXPathSelector(response)

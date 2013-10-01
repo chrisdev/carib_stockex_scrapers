@@ -21,6 +21,7 @@ class MarketSummaryItem(Item):
     cross_volume = Field()
     cross_value = Field()
     cross_trades = Field()
+    total_number_trades = Field()
 
 
 class JSEIndexItem(Item):
@@ -61,6 +62,16 @@ class CapValueItem(Item):
     capital_value = Field()
     trade_count = Field()
     traded_value = Field()
+    total_number_trades = Field()
+
+
+class MarketCapValueItem(Item):
+    exchange = Field()
+    dateix = Field()
+    capital_value = Field()
+    trade_count = Field()
+    traded_value = Field()
+    number_trades = Field()
 
 
 class BondListingItem(Item):

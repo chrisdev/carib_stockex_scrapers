@@ -7,8 +7,8 @@ from markets.models import Symbol, Exchange, SymbolData, MarketSummary,\
     ShareIssue
 from trading.models import Security, InstrumentType
 from carib_stockex_scrapers.items import (
-    BondListingItem,
-    MarketSummaryItem, TickerItem, CapValueItem, EquityItem)
+    BondListingItem, MarketSummaryItem, JSEIndexItem,
+    TickerItem, CapValueItem, EquityItem, MarketCapValueItem)
 from dateutil.parser import parse
 from django.utils.timezone import get_current_timezone, make_aware
 from datetime import datetime
@@ -31,16 +31,60 @@ class DjangoLoaderPipeline(object):
             return item
         if spider.name == 'ttse_bond_listing':
             return self.process_bond_item(item)
-        if spider.name in ['ttse_equity_data', ]:
-            #if isinstance(item, TickerItem):
-                #return self.process_ticker_item(item)
-            #if isinstance(item, MarketSummaryItem):
-                #return self.process_market_summary_item(item)
+        if spider.name in ['ttse_equity_data']:
+            if isinstance(item, TickerItem):
+                return self.process_ticker_item(item)
+            if isinstance(item, MarketSummaryItem):
+                return self.process_market_summary_item(item)
             if isinstance(item, CapValueItem):
                 return self.process_capvalue_item(item)
+            if isinstance(item, MarketCapValueItem):
+                return self.process_mkt_capvalue_item(item)
+        if spider.name in ['jse_equity']:
+            if isinstance(item, TickerItem):
+                return self.process_ticker_item(item)
+            if isinstance(item, JSEIndexItem):
+                return self.process_jse_index_item(item)
+
+    def process_jse_index_item(self, item):
+        exchange = Exchange.objects.get(code=item['exchange'])
+        dateix = parse(item['dateix'])
+        dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
+                        get_current_timezone()
+                        )
+        defaults = {}
+        default_mapper = {
+            'jse_market_index': 'main_index',
+            'jse_composite_index': 'index1',
+            'jse_cross_index': 'index2',
+            'jse_market_index_volume': 'volume',
+        }
+        for k, v in default_mapper.iteritems():
+            val = self.to_float(item[k])
+            if val:
+                defaults[v] = val
+        #import ipdb; ipdb.set_trace()
+        obj, created = MarketSummary.objects.get_or_create(
+            dateix=dd,
+            exchange=exchange,
+            defaults=defaults
+        )
+
+        if created:
+            log.msg(
+                "Added new observation %s" % obj
+            )
+        else:
+            for k, v in default_mapper.iteritems():
+                val = self.to_float(item[k])
+                #import pdb; pdb.set_trace()
+                if val:
+                    setattr(obj, v, val)
+            obj.save()
+            log.msg("Edited observation {}".format(obj))
+        return item
 
     def process_ticker_item(self, item):
-
         exchange = Exchange.objects.get(code=item['exchange'])
         dateix = parse(item['dateix'])
         dd = make_aware(
@@ -94,6 +138,7 @@ class DjangoLoaderPipeline(object):
                 #import pdb; pdb.set_trace()
                 if val:
                     setattr(obj, v, val)
+            obj.exchange_code = item['exchange']
             obj.save()
             log.msg("Edited observation {}".format(obj))
         return item
@@ -158,6 +203,43 @@ class DjangoLoaderPipeline(object):
                     item['exchange'], dateix.strftime('%Y-%m-%d'),
                     defaults['volume'],
                     defaults['main_index']), level=log.DEBUG)
+        else:
+            for k, v in default_mapper.iteritems():
+                val = self.to_float(item[k])
+                #import pdb; pdb.set_trace()
+                if val:
+                    setattr(obj, v, val)
+            obj.save()
+        return item
+
+    def process_mkt_capvalue_item(self, item):
+        exchange = Exchange.objects.get(code=item['exchange'])
+        dateix = parse(item['dateix'])
+        dd = make_aware(datetime(dateix.year, dateix.month, dateix.day),
+                        get_current_timezone()
+                        )
+        # import ipdb; ipdb.set_trace()
+        log.msg("Process Market Cap", level=log.DEBUG)
+        defaults = {}
+        default_mapper = {
+            'capital_value': 'market_cap',
+            'trade_count': 'trade_count',
+        }
+        for k, v in default_mapper.iteritems():
+            val = self.to_float(item[k])
+            if val:
+                defaults[v] = val
+        #import ipdb; ipdb.set_trace()
+        obj, created = MarketSummary.objects.get_or_create(
+            dateix=dd,
+            exchange=exchange,
+            defaults=defaults
+        )
+        if created:
+            log.msg("Added new observation %s[%s]=[C:%s V:%s]" % (
+                    item['exchange'], dateix.strftime('%Y-%m-%d'),
+                    defaults['market_cap'],
+                    defaults['trade_count']), level=log.DEBUG)
         else:
             for k, v in default_mapper.iteritems():
                 val = self.to_float(item[k])
