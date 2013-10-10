@@ -71,7 +71,6 @@ class MarketCapValueItem(Item):
     capital_value = Field()
     trade_count = Field()
     traded_value = Field()
-    number_trades = Field()
 
 
 class BondListingItem(Item):

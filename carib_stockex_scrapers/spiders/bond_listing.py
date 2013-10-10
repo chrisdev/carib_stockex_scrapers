@@ -3,7 +3,7 @@ from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.selector import HtmlXPathSelector
 from carib_stockex_scrapers.items import BondListingItem
 from datetime import date
-from scrapy.stats import stats
+#from scrapy.stats import stats
 from scrapy import signals
 from scrapy.xlib.pydispatch import dispatcher
 from scrapy import log
@@ -54,16 +54,14 @@ class TTBondListingSpider(CrawlSpider):
                 data_str = ' '.join([x.extract().strip()
                        for x in data_rows.select('td').select('text()')])
                 log.msg('ERRROR: {0}\n{1}'.format(response.url,data_str))
-                self.failed.append('{0}\n{1}'.format(response.url,data_str))
-                stats.inc_value('failed_item_count')
                 return
         item_kwargs['exchange'] = 'TTSE'
         item_kwargs['dateix'] = date.today().strftime("%y-%m-%d")
         bond = BondListingItem(**item_kwargs)
         yield bond
 
-        def handle_spider_closed(spider, reason):
-            stats.set_value('failed items', '\n'.join(spider.failed))
+        #def handle_spider_closed(spider, reason):
+            ##stats.set_value('failed items', '\n'.join(spider.failed))
 
-        dispatcher.connect(handle_spider_closed, signals.spider_closed)
+        #dispatcher.connect(handle_spider_closed, signals.spider_closed)
 

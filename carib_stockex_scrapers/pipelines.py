@@ -273,11 +273,13 @@ class DjangoLoaderPipeline(object):
                 obj = SymbolData.objects.get(dateix=dd,symbol=symbol)
                 obj.value_traded = self.to_float(item['traded_value'])
                 obj.market_cap = self.to_float(item['capital_value'])
+                obj.trade_count = self.to_float(item['trade_count'])
                 obj.save()
             except SymbolData.DoesNotExist:
                 obj = SymbolData(dateix=dd, symbol=symbol)
                 obj.value_traded = self.to_float(item['traded_value'])
                 obj.market_cap = self.to_float(item['capital_value'])
+                obj.trade_count = self.to_float(item['trade_count'])
                 obj.save()
 
                 log.msg("Updated {}".format(obj), level=log.INFO)
