@@ -3,16 +3,16 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/topics/item-pipeline.html
 from scrapy import log
-from markets.models import Symbol, Exchange, SymbolData, MarketSummary,\
-    ShareIssue
-from trading.models import Security, InstrumentType
+from mass_site.apps.markets.models import (Symbol, Exchange,
+    SymbolData, MarketSummary, ShareIssue
+)
+from mass_site.apps.trading.models import Security, InstrumentType
 from carib_stockex_scrapers.items import (
     BondListingItem, MarketSummaryItem, JSEIndexItem,
     TickerItem, CapValueItem, EquityItem, MarketCapValueItem)
 from dateutil.parser import parse
 from django.utils.timezone import get_current_timezone, make_aware
 from datetime import datetime
-from scrapy.stats import stats
 
 
 class DjangoLoaderPipeline(object):

@@ -11,9 +11,9 @@
 #BOT_VERSION = '1.0'
 TELNETCONSOLE_ENABLED = False
 
-ITEM_PIPELINES = [
-    'carib_stockex_scrapers.pipelines.DjangoLoaderPipeline',
-]
+ITEM_PIPELINES = {
+    'carib_stockex_scrapers.pipelines.DjangoLoaderPipeline': 1
+}
 SPIDER_MODULES = ['carib_stockex_scrapers.spiders']
 NEWSPIDER_MODULE = 'carib_stockex_scrapers.spiders'
 #USER_AGENT = '%s/%s' % (BOT_NAME, BOT_VERSION)
