@@ -46,8 +46,8 @@ Change Log
 
 * Changed the names of the scrapers::
 
-    scrapy crawl ttse_equity -a start_date=2012-01-05
-    scrapy crawl ttse_equity -a start_date=2012-01-05 -a end_date=2012-03-01
+    scrapy crawl ttse_equity_data -a start_date=2012-01-05
+    scrapy crawl ttse_equity_data -a start_date=2012-01-05 -a end_date=2012-03-01
 
   For the Bond listing::
 
